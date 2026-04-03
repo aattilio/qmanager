@@ -1,29 +1,21 @@
 # QManager: The Hypervisor Revolution
 
-QManager is a high-performance, professional-grade orchestrator for **QEMU/KVM**, engineered for developers and systems architects who demand absolute control with zero overhead.
+QManager is a high-performance orchestrator for KVM, engineered for technical excellence and absolute control. It provides a native, low-overhead interface to the Linux Kernel via `libvirt`, delivering a Type-1 hypervisor management experience.
 
-By interfacing directly with the Linux Kernel via **libvirt**, QManager delivers a Type-1 hypervisor experience through a modern, reactive interface built with **Go** and **Qt/QML**.
+## Key Architectures
 
-## Core Philosophy
+- **Go-Native Backend:** Leveraging Go's concurrency and system-level performance for robust infrastructure management.
+- **Hardware-Accelerated UI:** Built with Fyne (v2), the interface is rendered via OpenGL/Vulkan for extreme responsiveness.
+- **Atomic Modularity:** Every feature—from storage management to dynamic media resolution—is built as an isolated, structural module.
+- **Smart Orchestration:** Professional automation for OS deployment, including dynamic mirror resolution and optimized hardware defaults.
 
-- **Native Execution:** Eliminate middle layers. QManager communicates directly with KVM/QEMU, ensuring near-native performance for your virtualized workloads.
-- **Atomic Reliability:** Every feature is built as a decoupled, specialized module, ensuring a codebase that is robust, testable, and free of technical debt.
-- **Express Automation:** Inspired by the simplicity of consumer tools but powered by professional logic. Select from over 100 operating systems, and QManager handles the dynamic ISO fetching and hardware optimization instantly.
-- **Professional Scalability:** Engineered for high-concurrency environments, supporting advanced storage (QCOW2), networking (NAT/Bridge), and hardware-accelerated graphics (SPICE/VirtIO).
+## Project Structure
 
-## Key Features
-
-- **Dynamic ISO Scraper:** Intelligent fetching logic that resolves the latest installation media from official mirrors and university repositories.
-- **Hardware Synergy:** Out-of-the-box support for `host-passthrough`, ensuring your VMs leverage the full power of your physical CPU.
-- **Reactive Dashboard:** A beautiful, dark-mode interface designed for efficient management of multiple VM instances.
-- **Cross-Platform Foundation:** Built with portability in mind, ready for deployment on Linux, macOS, and Windows.
-
-## Documentation
-
-For technical information on how to build, install, and contribute to the project, please refer to the specialized guides:
-
-- **[Development & Build Guide](DEVELOPMENT.md)**: Instructions for compiling and setting up the development environment.
-- **[Agents System](AGENTS.md)**: Overview of the architectural principles governing the project.
+- `src/backend/hypervisor`: Direct kernel/libvirt orchestration logic.
+- `src/backend/discovery`: Dynamic ISO scraping and mirror resolution engine.
+- `src/backend/filesystem`: Virtual disk (QCOW2) and storage lifecycle management.
+- `src/backend/provisioning`: Asynchronous media handling and VM creation.
+- `config/catalog`: Modular XML-based OS metadata database.
 
 ---
 *QManager: Manage your infrastructure, not your tools.*

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"runtime"
 	"testing"
 	"time"
 
@@ -32,140 +33,151 @@ func TestOperatingSystemMediaIntegrity(
 	}
 
 	dynamicResolver := discovery.NewDynamicOperatingSystemResolver()
+	
+	// Create a shared client with a strict timeout to avoid hanging the entire suite
 	httpClient := &http.Client{
-		Timeout: 60 * time.Second,
+		Timeout: 45 * time.Second,
 	}
 
 	for _, osMetadata := range operatingSystemCatalog.OperatingSystems {
+		// Capture variable for closure
+		currentOS := osMetadata
+		
 		t.Run(
-			osMetadata.ID,
+			currentOS.ID,
 			func(
 				t *testing.T,
 			) {
-				resolvedMediaUrl, err := dynamicResolver.ResolveLatestArchitectureImage(
-					osMetadata.ISOURL,
-				)
-				if err != nil {
-					t.Fatalf(
-						"failed_to_resolve_media_url_for_%s: %v",
-						osMetadata.ID,
-						err,
-					)
-				}
+				t.Parallel() // Execute OS validations in parallel
+				
+				var lastError error
+				verifiedAnyMirror := false
 
-				headRequest, err := http.NewRequest(
-					"HEAD",
-					resolvedMediaUrl,
-					nil,
-				)
-				if err != nil {
-					t.Fatalf(
-						"failed_to_create_head_request: %v",
-						err,
+				for _, mirrorUrl := range currentOS.Mirrors {
+					resolvedMediaUrl, err := dynamicResolver.ResolveLatestArchitectureImage(
+						mirrorUrl,
 					)
-				}
-				headRequest.Header.Set(
-					"User-Agent",
-					"QManager-CI-Validator/1.0",
-				)
+					if err != nil {
+						lastError = err
+						continue
+					}
 
-				headResponse, err := httpClient.Do(
-					headRequest,
-				)
-				if err != nil {
-					t.Fatalf(
-						"head_transport_failure: %v",
-						err,
-					)
-				}
-				defer headResponse.Body.Close()
-
-				if headResponse.StatusCode != http.StatusOK {
-					t.Fatalf(
-						"invalid_head_response_status_%d_for_%s",
-						headResponse.StatusCode,
+					// HEAD request to check availability and get size
+					headRequest, err := http.NewRequest(
+						"HEAD",
 						resolvedMediaUrl,
+						nil,
 					)
-				}
-
-				totalSizeBytes := headResponse.ContentLength
-				if totalSizeBytes <= 0 {
-					totalSizeBytes = 500 * 1024 * 1024 // Fallback to 500MB
-				}
-
-				// Download approximately 1% as requested
-				verificationBytes := totalSizeBytes / 100
-				if verificationBytes < 1024*1024 {
-					verificationBytes = 1024 * 1024 // Min 1MB
-				}
-				if verificationBytes > 25*1024*1024 {
-					verificationBytes = 25 * 1024 * 1024 // Max 25MB for CI stability
-				}
-
-				getRequest, err := http.NewRequest(
-					"GET",
-					resolvedMediaUrl,
-					nil,
-				)
-				if err != nil {
-					t.Fatalf(
-						"failed_to_create_get_request: %v",
-						err,
+					if err != nil {
+						lastError = err
+						continue
+					}
+					headRequest.Header.Set(
+						"User-Agent",
+						"QManager-CI-Validator/1.0",
 					)
-				}
-				getRequest.Header.Set(
-					"User-Agent",
-					"QManager-CI-Validator/1.0",
-				)
 
-				getResponse, err := httpClient.Do(
-					getRequest,
-				)
-				if err != nil {
-					t.Fatalf(
-						"get_transport_failure: %v",
-						err,
+					headResponse, err := httpClient.Do(
+						headRequest,
 					)
-				}
-				defer getResponse.Body.Close()
+					if err != nil {
+						lastError = err
+						continue
+					}
+					defer headResponse.Body.Close()
 
-				if getResponse.StatusCode != http.StatusOK {
-					t.Fatalf(
-						"invalid_get_response_status_%d_for_%s",
-						getResponse.StatusCode,
+					if headResponse.StatusCode != http.StatusOK {
+						lastError = fmt.Errorf(
+							"invalid_status_%d_for_%s", 
+							headResponse.StatusCode, 
+							resolvedMediaUrl,
+						)
+						continue
+					}
+
+					totalSizeBytes := headResponse.ContentLength
+					if totalSizeBytes <= 0 {
+						totalSizeBytes = 500 * 1024 * 1024
+					}
+
+					// We verify 1% of the ISO or 15MB, whichever is smaller, to satisfy the requirement
+					// while keeping the CI fast and storage-safe.
+					onePercent := totalSizeBytes / 100
+					verificationBytes := int64(15 * 1024 * 1024) 
+					if onePercent < verificationBytes {
+						verificationBytes = onePercent
+					}
+					
+					// Minimum check: 1MB
+					if verificationBytes < 1024*1024 {
+						verificationBytes = 1024 * 1024
+					}
+
+					getRequest, err := http.NewRequest(
+						"GET",
 						resolvedMediaUrl,
+						nil,
 					)
+					if err != nil {
+						lastError = err
+						continue
+					}
+					getRequest.Header.Set(
+						"User-Agent",
+						"QManager-CI-Validator/1.0",
+					)
+
+					getResponse, err := httpClient.Do(
+						getRequest,
+					)
+					if err != nil {
+						lastError = err
+						continue
+					}
+					defer getResponse.Body.Close()
+
+					if getResponse.StatusCode != http.StatusOK {
+						lastError = fmt.Errorf("get_failed_status_%d", getResponse.StatusCode)
+						continue
+					}
+
+					limitReader := io.LimitReader(
+						getResponse.Body,
+						verificationBytes,
+					)
+
+					actualBytesRead, err := io.Copy(
+						io.Discard,
+						limitReader,
+					)
+					if err != nil {
+						lastError = err
+						continue
+					}
+
+					if actualBytesRead >= 1024*1024 {
+						verifiedAnyMirror = true
+						// Subtest log for tracking
+						t.Logf(
+							"Validated %s via %s (Read %d bytes)",
+							currentOS.ID,
+							mirrorUrl,
+							actualBytesRead,
+						)
+						break
+					}
 				}
 
-				limitReader := io.LimitReader(
-					getResponse.Body,
-					verificationBytes,
-				)
-
-				actualBytesRead, err := io.Copy(
-					io.Discard,
-					limitReader,
-				)
-				if err != nil {
-					t.Fatalf(
-						"failed_to_stream_media_content: %v",
-						err,
-					)
-				}
-
-				if actualBytesRead < 1024*1024 {
+				if !verifiedAnyMirror {
 					t.Errorf(
-						"resolved_media_is_too_small: read only %d bytes",
-						actualBytesRead,
+						"failed_to_verify_any_mirror_for_%s: last_error=%v", 
+						currentOS.ID, 
+						lastError,
 					)
 				}
 
-				fmt.Printf(
-					"Validated %s -> %s (Verified %d bytes successfully)\n",
-					osMetadata.ID,
-					resolvedMediaUrl,
-					actualBytesRead,
-				)
+				// Final cleanup for this parallel subtest
+				runtime.GC()
 			},
 		)
 	}

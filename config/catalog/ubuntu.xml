@@ -1,6 +1,10 @@
 <catalog>
     <os id="ubuntu" name="Ubuntu" version="latest" family="linux" arch="x86_64">
-        <iso_url>https://releases.ubuntu.com/24.04/</iso_url>
+        <mirrors>
+            <mirror>https://releases.ubuntu.com/24.04/</mirror>
+            <mirror>https://mirror.osbeck.com/ubuntu-releases/24.04/</mirror>
+            <mirror>http://it.releases.ubuntu.com/24.04/</mirror>
+        </mirrors>
         <min_ram_mb>2048</min_ram_mb>
         <min_vcpus>2</min_vcpus>
         <min_disk_gb>20</min_disk_gb>

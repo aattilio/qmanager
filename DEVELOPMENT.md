@@ -5,41 +5,25 @@ This document provides the necessary instructions to set up the development envi
 ## System Requirements
 
 - **Go Compiler** (Version 1.21 or later)
-- **Qt 5.15** (Development libraries and headers)
 - **Libvirt** (Development headers for C-bindings)
-- **GCC / G++** (Standard build toolchain supporting C++17)
+- **GCC / G++** (Standard build toolchain)
 - **Pkg-config**
 
-## Engineering Standards & Best Practices
+## Engineering Standards & Git Workflow
 
-### 1. Balanced Multiline Formatting
-We avoid both cluttered inline code and extreme vertical wrapping. The goal is professional readability.
+### 1. Feature-Branch Workflow
+**Direct pushes to `main` are strictly prohibited.** All development must occur on feature branches. 
+- Branches must follow the naming convention: `feat/feature-name` or `fix/bug-name`.
+- Integration into `main` must be performed via **Pull Request (PR)** only.
 
-- **Conditionals:** Body must always be on a new line. 
-  - *Allowed:*
-    ```go
-    if err != nil {
-        return err
-    }
-    ```
-  - *Forbidden:* `if err != nil { return err }`
-- **Function Calls/Signatures:** Use multiline if there are more than 3 parameters or if the line exceeds 80 characters.
-- **Structs/Objects:** Initializations with multiple members must be multiline.
-- **No Extreme Wrapping:** Do not wrap single simple parameters or simple conditions unless necessary for logic separation.
+### 2. Balanced Multiline Formatting
+We avoid cluttered inline code. The goal is professional readability.
+- **Conditionals:** Body must always be on a new line.
+- **Function Calls:** Use multiline if there are more than 3 parameters or if the line exceeds 80 characters.
+- **Initializers:** Every member assignment must reside on a unique line for complex objects.
 
-### 2. Semantic Naming
-Every file, variable, and function must be descriptive. Avoid abbreviations like `vm`, `cfg`, `ptr`.
-- **Bad:** `vm_client.go`, `var c *Lvirt`
-- **Good:** `libvirt_hypervisor_connector.go`, `var hypervisorConnector *LibvirtHypervisorConnector`
-
-### 3. Import Organization
-1. Standard Library
-2. Internal Project
-3. Third-party Library
-(Grouped with a blank line between them).
-
-### 4. Absolute Modularity
-The project is organized into atomic modules: `hypervisor`, `provisioning`, `filesystem`, `discovery`. Layers must interact through the defined `api/bridge` layer.
+### 3. Absolute Modularity
+The project is organized into atomic modules. Layers must interact through defined interfaces to prevent coupling.
 
 ## Build Instructions
 
@@ -54,9 +38,11 @@ make build-production-linux
 ```
 
 ### 3. Testing
+**Mandatory Verification:** All tests must pass before a PR is opened.
 ```bash
 make test
 ```
+The media integrity tests validate multiple mirrors per OS and perform memory cleanup after each verification.
 
 ## Post-Build Configuration
 

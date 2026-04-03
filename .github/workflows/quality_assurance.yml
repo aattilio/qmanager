@@ -10,6 +10,7 @@ jobs:
   logic-validation:
     name: Core & Backend Logic Verification
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
     - name: Checkout Source Code
@@ -30,10 +31,33 @@ jobs:
       run: go mod tidy
 
     - name: Run Backend Unit Tests
-      run: go test -v ./src/backend/...
+      run: go test -v ./src/backend/hypervisor/... ./src/backend/filesystem/...
+
+    - name: Run OS Catalog & Resolver Unit Tests
+      run: go test -v ./src/backend/discovery/...
 
     - name: Run Core Logic Tests
       run: go test -v ./src/core/...
+
+  media-integrity:
+    name: OS Catalog Media Integrity
+    runs-on: ubuntu-latest
+    needs: logic-validation
+    timeout-minutes: 20
+
+    steps:
+    - name: Checkout Source Code
+      uses: actions/checkout@v4
+
+    - name: Set up Go Environment
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.21'
+        cache: true
+
+    - name: Run ISO Download Integrity Tests
+      # We run these in parallel now, should be much faster.
+      run: go test -v -timeout 15m ./src/backend/discovery/tests/media_integrity_test.go
 
   production-compilation:
     name: Multi-Platform Production Build

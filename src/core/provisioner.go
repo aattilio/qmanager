@@ -32,7 +32,7 @@ func (provisioner *AutomatedVirtualMachineProvisioner) ExecuteExpressInstallatio
 	virtualMachineName string,
 	configurationCatalog *Catalog,
 ) error {
-	var selectedOperatingSystem *OSInfo
+	var selectedOperatingSystem *OperatingSystemMetadata
 	for _, osMetadata := range configurationCatalog.OperatingSystems {
 		if osMetadata.ID == operatingSystemId {
 			selectedOperatingSystem = &osMetadata
@@ -54,7 +54,7 @@ func (provisioner *AutomatedVirtualMachineProvisioner) ExecuteExpressInstallatio
 	)
 	
 	downloadTask := provisioning.DownloadTask{
-		URL:  selectedOperatingSystem.ISOURL,
+		URL:  selectedOperatingSystem.Mirrors[0],
 		Dest: isoStoragePath,
 		Progress: func(
 			currentBytes, 
