@@ -1,0 +1,8 @@
+<catalog>
+    <os id="android" name="Android" version="latest" family="linux" arch="x86_64">
+        <iso_url>https://mirrors.dotsrc.org/android-x86/Release/9.0-r2/</iso_url>
+        <min_ram_mb>2048</min_ram_mb>
+        <min_vcpus>2</min_vcpus>
+        <min_disk_gb>20</min_disk_gb>
+    </os>
+</catalog>

@@ -1,0 +1,65 @@
+name: QManager Quality Assurance
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  logic-validation:
+    name: Core & Backend Logic Verification
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Source Code
+      uses: actions/checkout@v4
+
+    - name: Set up Go Environment
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.21'
+        cache: true
+
+    - name: Install System Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libvirt-dev pkg-config qemu-system-x86 qemu-utils
+
+    - name: Verify Go Modules
+      run: go mod tidy
+
+    - name: Run Backend Unit Tests
+      run: go test -v ./src/backend/...
+
+    - name: Run Core Logic Tests
+      run: go test -v ./src/core/...
+
+  production-compilation:
+    name: Multi-Platform Production Build
+    runs-on: ubuntu-latest
+    needs: logic-validation
+
+    steps:
+    - name: Checkout Source Code
+      uses: actions/checkout@v4
+
+    - name: Set up Go Environment
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.21'
+        cache: true
+
+    - name: Install Build Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libvirt-dev pkg-config build-essential
+
+    - name: Build CLI Production Artifact
+      run: make build-production-cli
+
+    - name: Archive CLI Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: qmanager-cli
+        path: deploy/cli/qmanager-cli

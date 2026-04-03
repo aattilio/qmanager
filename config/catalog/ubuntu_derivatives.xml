@@ -1,0 +1,14 @@
+<catalog>
+    <os id="linuxmint-21" name="Linux Mint 21" version="21.3" family="linux" arch="x86_64">
+        <iso_url>https://mirrors.layeronline.com/linuxmint/stable/21.3/</iso_url>
+        <min_ram_mb>2048</min_ram_mb>
+        <min_vcpus>2</min_vcpus>
+        <min_disk_gb>20</min_disk_gb>
+    </os>
+    <os id="zorin-17" name="Zorin OS 17" version="17.1" family="linux" arch="x86_64">
+        <iso_url>https://mirror.sjtu.edu.cn/zorinos-isos/17/</iso_url>
+        <min_ram_mb>2048</min_ram_mb>
+        <min_vcpus>2</min_vcpus>
+        <min_disk_gb>20</min_disk_gb>
+    </os>
+</catalog>

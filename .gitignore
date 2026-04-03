@@ -1,0 +1,35 @@
+# Go artifacts
+bin/
+main
+qmanager-cli
+qmanager_core.so
+qmanager_core.h
+go.sum
+
+# C++ / Qt artifacts
+*.o
+*.a
+*.so
+*.dll
+*.dylib
+moc_*
+ui_*
+rcc_*
+.qmake.stash
+Makefile
+qmanager-cpp
+src/interface/cpp/qmanager-cpp
+src/interface/cpp/Makefile
+src/interface/cpp/*.o
+src/interface/cpp/moc_*
+
+# Build and Deployment
+deploy/
+dist/
+
+# System and IDE
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*~

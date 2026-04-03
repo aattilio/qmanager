@@ -1,0 +1,14 @@
+<catalog>
+    <os id="arch-latest" name="Arch Linux" version="latest" family="linux" arch="x86_64">
+        <iso_url>https://mirror.osbeck.com/archlinux/iso/latest/</iso_url>
+        <min_ram_mb>2048</min_ram_mb>
+        <min_vcpus>2</min_vcpus>
+        <min_disk_gb>20</min_disk_gb>
+    </os>
+    <os id="artix-latest" name="Artix Linux" version="latest" family="linux" arch="x86_64">
+        <iso_url>https://mirror.pascal-werner.de/artix-linux/iso/</iso_url>
+        <min_ram_mb>2048</min_ram_mb>
+        <min_vcpus>2</min_vcpus>
+        <min_disk_gb>20</min_disk_gb>
+    </os>
+</catalog>

@@ -1,0 +1,8 @@
+<catalog>
+    <os id="endeavouros" name="Endeavouros" version="latest" family="linux" arch="x86_64">
+        <iso_url>https://mirror.accum.se/mirror/endeavouros/iso/</iso_url>
+        <min_ram_mb>2048</min_ram_mb>
+        <min_vcpus>2</min_vcpus>
+        <min_disk_gb>20</min_disk_gb>
+    </os>
+</catalog>

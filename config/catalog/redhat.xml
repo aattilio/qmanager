@@ -1,0 +1,20 @@
+<catalog>
+    <os id="almalinux-9" name="AlmaLinux 9" version="9.4" family="linux" arch="x86_64">
+        <iso_url>https://repo.almalinux.org/almalinux/9/isos/x86_64/</iso_url>
+        <min_ram_mb>2048</min_ram_mb>
+        <min_vcpus>2</min_vcpus>
+        <min_disk_gb>20</min_disk_gb>
+    </os>
+    <os id="rockylinux-9" name="Rocky Linux 9" version="9.4" family="linux" arch="x86_64">
+        <iso_url>https://download.rockylinux.org/pub/rocky/9/isos/x86_64/</iso_url>
+        <min_ram_mb>2048</min_ram_mb>
+        <min_vcpus>2</min_vcpus>
+        <min_disk_gb>20</min_disk_gb>
+    </os>
+    <os id="fedora-40" name="Fedora 40" version="40" family="linux" arch="x86_64">
+        <iso_url>https://mirror.init7.net/fedora/linux/releases/40/Workstation/x86_64/iso/</iso_url>
+        <min_ram_mb>2048</min_ram_mb>
+        <min_vcpus>2</min_vcpus>
+        <min_disk_gb>20</min_disk_gb>
+    </os>
+</catalog>
