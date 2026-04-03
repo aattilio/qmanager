@@ -39,6 +39,10 @@ func TestOperatingSystemMediaIntegrity(
 		Timeout: 45 * time.Second,
 	}
 
+	// Limit concurrency to avoid network saturation and context deadline exceeded in CI
+	// 5 simultaneous OS checks is a safe balance for typical CI bandwidth
+	concurrencyLimit := make(chan struct{}, 5)
+
 	for _, osMetadata := range operatingSystemCatalog.OperatingSystems {
 		// Capture variable for closure
 		currentOS := osMetadata
@@ -50,7 +54,11 @@ func TestOperatingSystemMediaIntegrity(
 			) {
 				t.Parallel() // Execute OS validations in parallel
 				
-				var lastError error
+				// Wait for a slot in the concurrency limit
+				concurrencyLimit <- struct{}{}
+				defer func() { <-concurrencyLimit }()
+				
+				var mirrorErrors []error
 				verifiedAnyMirror := false
 
 				for _, mirrorUrl := range currentOS.Mirrors {
@@ -58,7 +66,10 @@ func TestOperatingSystemMediaIntegrity(
 						mirrorUrl,
 					)
 					if err != nil {
-						lastError = err
+						mirrorErrors = append(
+							mirrorErrors, 
+							fmt.Errorf("resolution_failed_for_%s: %v", mirrorUrl, err),
+						)
 						continue
 					}
 
@@ -69,7 +80,10 @@ func TestOperatingSystemMediaIntegrity(
 						nil,
 					)
 					if err != nil {
-						lastError = err
+						mirrorErrors = append(
+							mirrorErrors, 
+							fmt.Errorf("head_req_creation_failed_for_%s: %v", resolvedMediaUrl, err),
+						)
 						continue
 					}
 					headRequest.Header.Set(
@@ -81,16 +95,18 @@ func TestOperatingSystemMediaIntegrity(
 						headRequest,
 					)
 					if err != nil {
-						lastError = err
+						mirrorErrors = append(
+							mirrorErrors, 
+							fmt.Errorf("head_do_failed_for_%s: %v", resolvedMediaUrl, err),
+						)
 						continue
 					}
 					defer headResponse.Body.Close()
 
 					if headResponse.StatusCode != http.StatusOK {
-						lastError = fmt.Errorf(
-							"invalid_status_%d_for_%s", 
-							headResponse.StatusCode, 
-							resolvedMediaUrl,
+						mirrorErrors = append(
+							mirrorErrors, 
+							fmt.Errorf("head_status_%d_for_%s", headResponse.StatusCode, resolvedMediaUrl),
 						)
 						continue
 					}
@@ -119,7 +135,10 @@ func TestOperatingSystemMediaIntegrity(
 						nil,
 					)
 					if err != nil {
-						lastError = err
+						mirrorErrors = append(
+							mirrorErrors, 
+							fmt.Errorf("get_req_creation_failed_for_%s: %v", resolvedMediaUrl, err),
+						)
 						continue
 					}
 					getRequest.Header.Set(
@@ -131,13 +150,19 @@ func TestOperatingSystemMediaIntegrity(
 						getRequest,
 					)
 					if err != nil {
-						lastError = err
+						mirrorErrors = append(
+							mirrorErrors, 
+							fmt.Errorf("get_do_failed_for_%s: %v", resolvedMediaUrl, err),
+						)
 						continue
 					}
 					defer getResponse.Body.Close()
 
 					if getResponse.StatusCode != http.StatusOK {
-						lastError = fmt.Errorf("get_failed_status_%d", getResponse.StatusCode)
+						mirrorErrors = append(
+							mirrorErrors, 
+							fmt.Errorf("get_status_%d_for_%s", getResponse.StatusCode, resolvedMediaUrl),
+						)
 						continue
 					}
 
@@ -151,7 +176,10 @@ func TestOperatingSystemMediaIntegrity(
 						limitReader,
 					)
 					if err != nil {
-						lastError = err
+						mirrorErrors = append(
+							mirrorErrors, 
+							fmt.Errorf("streaming_failed_for_%s: %v", resolvedMediaUrl, err),
+						)
 						continue
 					}
 
@@ -170,10 +198,12 @@ func TestOperatingSystemMediaIntegrity(
 
 				if !verifiedAnyMirror {
 					t.Errorf(
-						"failed_to_verify_any_mirror_for_%s: last_error=%v", 
-						currentOS.ID, 
-						lastError,
+						"failed_to_verify_any_mirror_for_%s: all_mirrors_failed", 
+						currentOS.ID,
 					)
+					for _, mErr := range mirrorErrors {
+						t.Logf("Mirror error: %v", mErr)
+					}
 				}
 
 				// Final cleanup for this parallel subtest
