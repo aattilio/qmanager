@@ -1,6 +1,8 @@
 <catalog>
     <os id="alpine" name="Alpine" version="latest" family="linux" arch="x86_64">
-        <iso_url>https://dl-cdn.alpinelinux.org/alpine/v3.20/releases/x86_64/</iso_url>
+        <mirrors>
+            <mirror>https://mirror.accum.se/mirror/archlinux/iso/latest/</mirror>
+        </mirrors>
         <min_ram_mb>2048</min_ram_mb>
         <min_vcpus>2</min_vcpus>
         <min_disk_gb>20</min_disk_gb>

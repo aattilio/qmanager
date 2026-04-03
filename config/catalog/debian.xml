@@ -1,6 +1,9 @@
 <catalog>
     <os id="debian" name="Debian" version="latest" family="linux" arch="x86_64">
-        <iso_url>https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/</iso_url>
+        <mirrors>
+            <mirror>https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/</mirror>
+            <mirror>https://mirror.accum.se/debian-cd/current/amd64/iso-cd/</mirror>
+        </mirrors>
         <min_ram_mb>2048</min_ram_mb>
         <min_vcpus>2</min_vcpus>
         <min_disk_gb>20</min_disk_gb>

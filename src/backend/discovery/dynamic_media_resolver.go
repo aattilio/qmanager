@@ -6,9 +6,16 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 )
+
+type MediaCandidate struct {
+	URL          string
+	LastModified time.Time
+	Name         string
+}
 
 type DynamicOperatingSystemResolver struct {
 	NetworkClient *http.Client
@@ -46,12 +53,12 @@ func (resolver *DynamicOperatingSystemResolver) ResolveLatestArchitectureImage(
 		return sourceUrl, nil
 	}
 
-	return resolver.scrapeDirectoryForImage(
+	return resolver.scrapeDirectoryForLatestImage(
 		sourceUrl,
 	)
 }
 
-func (resolver *DynamicOperatingSystemResolver) scrapeDirectoryForImage(
+func (resolver *DynamicOperatingSystemResolver) scrapeDirectoryForLatestImage(
 	directoryUrl string,
 ) (
 	string,
@@ -97,27 +104,28 @@ func (resolver *DynamicOperatingSystemResolver) scrapeDirectoryForImage(
 		bodyContentBytes,
 	)
 
-	isoLinkPattern := regexp.MustCompile(
-		`href=["']?([^"' >]+\.(iso|img))(["' >]|$)`,
+	// Regex to match hrefs and potential date information in common directory listings
+	// Matches: href="filename.iso" and captures the full row for date parsing
+	rowPattern := regexp.MustCompile(
+		`(?i)<a[^>]+href=["']?([^"' >]+\.(iso|img))["' >]?[^>]*>(?:[^<]+)?</a>\s*([\d-]{4,10}\s+[\d:]{4,8}|[\d]{1,2}-\w{3}-\d{4}\s+[\d:]{4,8}|[\d]{1,2}\s+\w{3}\s+\d{4})?`,
 	)
 	
-	allMatches := isoLinkPattern.FindAllStringSubmatch(
+	allRows := rowPattern.FindAllStringSubmatch(
 		bodyContent,
 		-1,
 	)
 
-	if len(allMatches) == 0 {
+	if len(allRows) == 0 {
 		return "", fmt.Errorf(
-			"no_iso_found_at_%s",
+			"no_media_found_at_%s",
 			directoryUrl,
 		)
 	}
 
-	var bestLink string
-	maxScore := -1
-
-	for _, match := range allMatches {
-		link := match[1]
+	var candidates []MediaCandidate
+	for _, row := range allRows {
+		link := row[1]
+		dateStr := row[3]
 		lowerLink := strings.ToLower(
 			link,
 		)
@@ -133,29 +141,51 @@ func (resolver *DynamicOperatingSystemResolver) scrapeDirectoryForImage(
 			continue
 		}
 
-		score := 0
-		if strings.Contains(lowerLink, "desktop") {
-			score += 10
-		}
-		if strings.Contains(lowerLink, "live") {
-			score += 5
-		}
-		if strings.Contains(lowerLink, "full") {
-			score += 3
-		}
-		if strings.Contains(lowerLink, "x86_64") || strings.Contains(lowerLink, "amd64") {
-			score += 2
+		parsedDate := time.Time{}
+		if dateStr != "" {
+			// Try common date formats
+			formats := []string{
+				"2006-01-02 15:04",
+				"02-Jan-2006 15:04",
+				"02 Jan 2006 15:04",
+			}
+			for _, fmtStr := range formats {
+				if t, err := time.Parse(fmtStr, dateStr); err == nil {
+					parsedDate = t
+					break
+				}
+			}
 		}
 
-		if score > maxScore {
-			maxScore = score
-			bestLink = link
-		}
+		candidates = append(
+			candidates,
+			MediaCandidate{
+				URL:          link,
+				LastModified: parsedDate,
+				Name:         link,
+			},
+		)
 	}
 
-	if bestLink == "" {
-		bestLink = allMatches[len(allMatches)-1][1]
+	if len(candidates) == 0 {
+		return "", fmt.Errorf(
+			"filtered_all_media_at_%s",
+			directoryUrl,
+		)
 	}
+
+	// Sort by date (descending), then by name (descending)
+	sort.Slice(
+		candidates,
+		func(i, j int) bool {
+			if !candidates[i].LastModified.Equal(candidates[j].LastModified) {
+				return candidates[i].LastModified.After(candidates[j].LastModified)
+			}
+			return candidates[i].Name > candidates[j].Name
+		},
+	)
+
+	selectedLink := candidates[0].URL
 
 	parsedBase, err := url.Parse(
 		response.Request.URL.String(),
@@ -165,7 +195,7 @@ func (resolver *DynamicOperatingSystemResolver) scrapeDirectoryForImage(
 	}
 
 	parsedLink, err := url.Parse(
-		bestLink,
+		selectedLink,
 	)
 	if err != nil {
 		return "", err

@@ -8,26 +8,26 @@ import (
 )
 
 type Catalog struct {
-	OperatingSystems []OSInfo
+	OperatingSystems []OperatingSystemMetadata
 }
 
 type XMLCatalog struct {
-	XMLName xml.Name `xml:"catalog"`
-	OS      []OSInfo `xml:"os"`
+	XMLName xml.Name                  `xml:"catalog"`
+	Systems []OperatingSystemMetadata `xml:"os"`
 }
 
-type OSInfo struct {
-	ID                  string `xml:"id,attr"`
-	Name                string `xml:"name,attr"`
-	Version             string `xml:"version,attr"`
-	Family              string `xml:"family,attr"`
-	Architecture        string `xml:"arch,attr"`
-	ISOURL              string `xml:"iso_url"`
-	MinRAM              int    `xml:"min_ram_mb"`
-	MinVCPUs            int    `xml:"min_vcpus"`
-	MinDiskGB           int    `xml:"min_disk_gb"`
-	RecommendedDiskBus  string `xml:"recommended_disk_bus"`
-	RecommendedNetModel string `xml:"recommended_net_model"`
+type OperatingSystemMetadata struct {
+	ID                  string   `xml:"id,attr"`
+	Name                string   `xml:"name,attr"`
+	Version             string   `xml:"version,attr"`
+	Family              string   `xml:"family,attr"`
+	Architecture        string   `xml:"arch,attr"`
+	Mirrors             []string `xml:"mirrors>mirror"`
+	MinRAM              int      `xml:"min_ram_mb"`
+	MinVCPUs            int      `xml:"min_vcpus"`
+	MinDiskGB           int      `xml:"min_disk_gb"`
+	RecommendedDiskBus  string   `xml:"recommended_disk_bus"`
+	RecommendedNetModel string   `xml:"recommended_net_model"`
 }
 
 func LoadConfigurationCatalogFromDirectory(
@@ -48,7 +48,7 @@ func LoadConfigurationCatalogFromDirectory(
 
 	mergedCatalog := &Catalog{
 		OperatingSystems: make(
-			[]OSInfo,
+			[]OperatingSystemMetadata,
 			0,
 		),
 	}
@@ -89,7 +89,7 @@ func LoadConfigurationCatalogFromDirectory(
 
 		mergedCatalog.OperatingSystems = append(
 			mergedCatalog.OperatingSystems,
-			xmlContent.OS...,
+			xmlContent.Systems...,
 		)
 	}
 
